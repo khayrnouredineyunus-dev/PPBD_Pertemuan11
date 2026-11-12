@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,12 +24,18 @@ fun CounterApp(
     viewModel: CounterViewModel = viewModel()
 ) {
     val counter by viewModel.counter
+    val nameInput by viewModel.nameInput     // [CHALLENGE]
+    val savedName by viewModel.savedName     // [CHALLENGE]
 
     CounterScreen(
         counter = counter,
+        savedName = savedName,
+        nameInput = nameInput,
         onIncrement = { viewModel.increment() },
         onDecrement = { viewModel.decrement() },
         onReset = { viewModel.reset() },
+        onNameChange = { viewModel.onNameChange(it) },
+        onSaveName = { viewModel.saveName() },
         modifier = modifier
     )
 }
@@ -36,14 +43,19 @@ fun CounterApp(
 @Composable
 fun CounterScreen(
     counter: Int,
+    savedName: String,
+    nameInput: String,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
     onReset: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onSaveName: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()          // [CHALLENGE] naik saat keyboard muncul
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -55,6 +67,7 @@ fun CounterScreen(
         Spacer(modifier = Modifier.height(16.dp))
         CounterDisplay(
             value = counter,
+            name = savedName,
             modifier = Modifier.fillMaxWidth().weight(1f)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -63,11 +76,21 @@ fun CounterScreen(
             onIncrement = onIncrement,
             onReset = onReset
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        NameForm(                                   // [CHALLENGE]
+            name = nameInput,
+            onNameChange = onNameChange,
+            onSave = onSaveName
+        )
     }
 }
 
 @Composable
-fun CounterDisplay(value: Int, modifier: Modifier = Modifier) {
+fun CounterDisplay(
+    value: Int,
+    modifier: Modifier = Modifier,
+    name: String = ""                               // [CHALLENGE]
+) {
     Box(
         modifier = modifier.background(
             color = Color(0xFFF5F5F5),
@@ -88,6 +111,17 @@ fun CounterDisplay(value: Int, modifier: Modifier = Modifier) {
             fontSize = 120.sp,
             fontWeight = FontWeight.Bold
         )
+        // [CHALLENGE] Nama tampil di bawah angka, hanya jika sudah disimpan
+        if (name.isNotBlank()) {
+            Text(
+                text = "Nama: $name",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            )
+        }
     }
 }
 
@@ -149,15 +183,50 @@ fun CounterButtons(
     }
 }
 
+// [CHALLENGE] Form input Nama + tombol Simpan
+@Composable
+fun NameForm(
+    name: String,
+    onNameChange: (String) -> Unit,
+    onSave: () -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text("Nama") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = {
+                onSave()
+                focusManager.clearFocus()   // tutup keyboard setelah simpan
+            },
+            enabled = name.isNotBlank(),    // tombol mati kalau form kosong
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("SIMPAN")
+        }
+    }
+}
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun CounterScreenPreview() {
     CounterComposeTheme {
         CounterScreen(
             counter = 7,
+            savedName = "Nama Kamu",
+            nameInput = "Nama Kamu",
             onIncrement = {},
             onDecrement = {},
-            onReset = {}
+            onReset = {},
+            onNameChange = {},
+            onSaveName = {}
         )
     }
 }
